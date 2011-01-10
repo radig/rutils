@@ -1,0 +1,20 @@
+h1. Radig Utils
+
+Este plugin fornece um conjunto de classes e métodos de propósito geral, que visam facilitar tarefas recorrentes no desenvolvimento de sistemas em CakePHP.
+
+h2. Autor e Copyright
+
+* *Copyright 2011,* "*Radig - Soluções em TI*":http://www.radig.com.br
+* Licença MIT - Isto quer dizer que o código está disponível sem nenhuma garantia, ao mesmo tempo que
+você pode usa-lo de forma isolada ou em conjunto com seu próprio código.
+
+h2. Como usar
+
+* Apenas inclua a classe que deseja utilizar e chame os métodos de interesse
+
+bc. App::import('Lib', 'Rutils.Rutils');
+
+if(Rutils::isNullDate('0000-00-00'))
+    echo 'Data nula no MySQL';
+else
+    echo 'Data não nula';
