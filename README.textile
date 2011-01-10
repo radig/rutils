@@ -13,7 +13,6 @@ h2. Como usar
 * Apenas inclua a classe que deseja utilizar e chame os métodos de interesse
 
 bc. App::import('Lib', 'Rutils.Rutils');
-
 if(Rutils::isNullDate('0000-00-00'))
     echo 'Data nula no MySQL';
 else
