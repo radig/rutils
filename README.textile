@@ -8,7 +8,7 @@ h2. Autor e Copyright
 * Licença MIT - Isto quer dizer que o código está disponível sem nenhuma garantia, ao mesmo tempo que
 você pode usa-lo de forma isolada ou em conjunto com seu próprio código.
 
-h2. Como usar
+h2. Como usar a classe Rutils
 
 * Apenas inclua a classe que deseja utilizar e chame os métodos de interesse
 
@@ -17,3 +17,20 @@ if(Rutils::isNullDate('0000-00-00'))
     echo 'Data nula no MySQL';
 else
     echo 'Data não nula';
+
+h2. Como usar a class Cryptastic
+
+bc. App::import('Lib', 'Rutils.Cryptastic');
+// geração do vetor de inicialização
+$iv = Cryptastic::generateIV(MCRYPT_TRIPLEDES, MCRYPT_MODE_ECB, false);
+
+// uma senha qualquer que será usada para cifrar a informação
+$ck = 'c0fc3c713f09a43384ac08f7d91fca430dcbc6466fff9284ce4571bdc2c8f9f9';
+
+// criptografando e retornando valor em base64 (evitar problemas com informação binária).
+$codificado = Cryptastic::ecnrypt('Meu texto secreto', $ck, $iv, true);
+
+echo 'Valor criptografado: ', $codificado, "\n";
+
+// Decripta o valor codificado, informando que esta em base64 e imprime o texto de volta 
+echo 'Valor decriptado: ', Cryptastic::decrypt($codificado, $ck, true);
