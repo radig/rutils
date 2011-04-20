@@ -113,14 +113,15 @@ class Cryptastic
 	 *
 	 *	@return  string  derived key
 	*/
-	public static function pbkdf2( $p, $s, $c, $kl, $a = 'sha256' ) {
-
+	public static function pbkdf2( $p, $s, $c, $kl, $a = 'sha256' )
+	{
 		$hl = strlen(hash($a, null, true));	# Hash length
 		$kb = ceil($kl / $hl);				# Key blocks to compute
 		$dk = '';							# Derived key
 
 		# Create key
-		for ( $block = 1; $block <= $kb; $block ++ ) {
+		for ( $block = 1; $block <= $kb; $block ++ )
+		{
 
 			# Initial hash for this block
 			$ib = $b = hash_hmac($a, $s . pack('N', $block), $p, true);
@@ -136,5 +137,24 @@ class Cryptastic
 
 		# Return derived key of correct length
 		return substr($dk, 0, $kl);
+	}
+	
+	/**
+	 * Generate a random Initialization Vector for use with
+	 * crypt algorithms.
+	 * 
+	 * Code posted by Er. Galvão in your personal blog ( http://blog.galvao.eti.br/?p=212 ) 
+	 */
+	public static function generateIV($type = MCRYPT_TRIPLEDES, $mode = MCRYPT_MODE_ECB, $base64 = true)
+	{
+		$size = mcrypt_get_iv_size($type, $mode);
+		$iv = mcrypt_create_iv($size, MCRYPT_DEV_RANDOM);
+
+		if($base64)
+		{
+			return base64_encode($iv);
+		}
+		
+		return $iv;
 	}
 }
