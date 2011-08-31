@@ -71,6 +71,6 @@ class Text {
 		if(empty($s))
 			return '';
 		
-		return preg_replace(array_keys(Text::$transliteration), array_values(Text::$transliteration), $string);
+		return preg_replace(array_keys(Text::$transliteration), array_values(Text::$transliteration), $s);
 	}
 }
