@@ -50,4 +50,40 @@ class Rutils
 		
 		return false;
 	}
+	
+	/**
+	 * Abre um arquivo especificado pelo parâmetro $filePath para leitura.
+	 * Retorna o objeto que representa o arquivo em caso de sucesso, ou o 
+	 * boolean false caso contrário.
+	 * 
+	 * @param string $filePath caminho do arquivo
+	 * @return mixed SplFileObject em caso de sucesso | bool false caso contrário
+	 */
+	static function openFile($filePath)
+	{
+		if(is_string($filePath))
+		{
+			try
+			{
+				$fileInfo = new SplFileInfo($filePath);
+
+				if($fileInfo->isFile())
+				{
+					$file = $fileInfo->openFile();
+
+					return $file;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			catch( Exception $e )
+			{
+				trigger_error("Arquivo não pode ser importado\n" . $e->getMessage(), E_USER_WARNING);
+
+				return false;
+			}
+		}
+	}
 }
