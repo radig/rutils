@@ -84,7 +84,7 @@
 
  */
 
-App::import('Vendor', 'Stack');
+App::import('Lib', 'Rutils.Stack');
 
 class EvalMath
 {
