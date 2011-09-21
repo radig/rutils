@@ -103,7 +103,7 @@ class EvalMathTest extends CakeTestCase
 		unset($Eval);
 	}
 	
-	public function testEvaluateWithTwoVars()
+	public function testEvaluateWithManyVars()
 	{
 		$Eval = new EvalMath();
 	
@@ -133,6 +133,11 @@ class EvalMathTest extends CakeTestCase
 	
 		$result = $Eval->evaluate('a / b');
 		$this->assertIdentical('0.666', $result);
+		
+		$Eval->evaluate('radig = 10');
+		
+		$result = $Eval->evaluate('radig * a');
+		$this->assertIdentical('20.000', $result);
 		
 		$Eval->evaluate('c = 15');
 		$Eval->evaluate('d = 2');
