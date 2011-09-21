@@ -54,8 +54,8 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('3 * 2.5');
 		$this->assertIdentical('7.500', $result);
 		
-		$result = $Eval->evaluate('3 * 2.5');
-		$this->assertIdentical('7.500', $result);
+		$result = $Eval->evaluate('5 / 2.5');
+		$this->assertIdentical('2.000', $result);
 		
 		unset($Eval);
 	}
@@ -97,14 +97,6 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('a * 3');
 		$this->assertIdentical('6.000', $result);
 		
-		try {
-			$fail = $Eval->evaluate('a / 0');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
-		
 		$result = $Eval->evaluate('a / 2');
 		$this->assertIdentical('1.000', $result);
 		
@@ -141,6 +133,12 @@ class EvalMathTest extends CakeTestCase
 	
 		$result = $Eval->evaluate('a / b');
 		$this->assertIdentical('0.666', $result);
+		
+		$Eval->evaluate('c = 15');
+		$Eval->evaluate('d = 2');
+		
+		$result = $Eval->evaluate('(c/10)*10^(1+d)');
+		$this->assertIdentical('1500.000', $result);
 	
 		unset($Eval);
 	}
@@ -166,53 +164,48 @@ class EvalMathTest extends CakeTestCase
 	{
 		$Eval = new EvalMath();
 		
-		try {
-			$fail = $Eval->evaluate('a / 0');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('1 / 0');
+		$this->assertEqual($Eval->getLastError(), 'Division by zero');
+		$this->assertIdentical(false, $result);
 		
-		try {
-			$result = $Eval->evaluate('_2');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('a');
+		$this->assertEqual($Eval->getLastError(), 'Undefined variable \'a\'');
+		$this->assertIdentical(false, $result);
 		
-		try {
-			$result = $Eval->evaluate('a');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('_2');
+		$this->assertEqual($Eval->getLastError(), 'Illegal character \'_\'');
+		$this->assertIdentical(false, $result);
 		
-		try {
-			$result = $Eval->evaluate('e = 1');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('e = 1');
+		$this->assertEqual($Eval->getLastError(), 'Cannot assign to constant \'e\'');
+		$this->assertIdentical(false, $result);
 		
-		try {
-			$result = $Eval->evaluate('sin(x) = 2*x');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('sin(x) = 2*x');
+		$this->assertEqual($Eval->getLastError(), 'Cannot redefine built-in function \'sin()\'');
 		
-		try {
-			$result = $Eval->evaluate('a(1,2');
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual($Eval->getLastError(), $e->getMessage());
-		}
+		$result = $Eval->evaluate('a(1,2');
+		$this->assertEqual($Eval->getLastError(), 'Unexpected \',\'');
+		
+		unset($Eval);
+	}
+	
+	public function testInvalidExpressions()
+	{
+		$Eval = new EvalMath();
+		
+		$Eval->suppress_errors = true;
+		
+		$result = $Eval->evaluate('()');
+		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
+		
+		$result = $Eval->evaluate('1)');
+		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
+		
+		$result = $Eval->evaluate('((');
+		$this->assertEqual($Eval->getLastError(), 'Expecting \')\'');
+		
+		$result = $Eval->evaluate('2+3+');
+		$this->assertEqual($Eval->getLastError(), 'Operator \'+\' lacks operand');
 		
 		unset($Eval);
 	}

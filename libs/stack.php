@@ -38,7 +38,6 @@ class Stack
 		if ($this->elements > 0)
 		{
 			$this->elements--;
-			
 			return array_pop($this->stack);
 		}
 		
@@ -50,7 +49,8 @@ class Stack
 	 * Pode ser utilizado com um lookahead.
 	 * 
 	 * @param int $n
-	 * @throws Exception
+	 * 
+	 * @return mixed $this->stack[nth] if it exist and null otherwise
 	 */
 	public function nth($n = 1)
 	{
@@ -60,15 +60,9 @@ class Stack
 			{
 				return $this->stack[$this->elements - $n];
 			}
-			else
-			{
-				return null;
-			}
 		}
-		else
-		{
-			throw new Exception("Stack underflow. \nTrying access position '$n'", 500);
-		}
+		
+		return null;
 	}
 	
 	/**

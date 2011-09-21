@@ -11,17 +11,7 @@ class StackTest extends CakeTestCase
 		
 		$this->assertIdentical($Stack->nth(0), null);
 		
-		$result = null;
-		
-		try
-		{
-			$result = $Stack->nth();
-		}
-		catch(Exception $e)
-		{
-			$this->assertEqual("Stack underflow. \nTrying access position '1'", $e->getMessage());
-		}
-		
+		$result = $Stack->nth();
 		$this->assertIdentical($result, null);
 		
 		unset($Stack);

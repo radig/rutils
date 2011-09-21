@@ -117,7 +117,6 @@ class EvalMath
 		$this->v['e'] = exp(1);
 		//set default precision of BC Math operations
 		$this->precision = $precision;
-		bcscale($this->precision);
 	}
 	
 	/**
@@ -128,6 +127,37 @@ class EvalMath
 	public function getLastError()
 	{
 		return $this->last_error;
+	}
+	
+	/**
+	* Get user defined variables
+	*
+	* @return array $vars
+	*/
+	public function vars()
+	{
+		$output = $this->v;
+	
+		unset($output['pi'], $output['e']);
+	
+		return $output;
+	}
+	
+	/**
+	 * Get user defined functions
+	 *
+	 * @return array $functions
+	 */
+	public function funcs()
+	{
+		$output = array();
+	
+		foreach ($this->f as $fnn => $dat)
+		{
+			$output[] = $fnn . '(' . implode(',', $dat['args']) . ')';
+		}
+	
+		return $output;
 	}
 
 	/**
@@ -159,7 +189,7 @@ class EvalMath
 			// make sure we're not assigning to a constant
 			if (in_array($matches[1], $this->vb))
 			{
-				$this->throwError("cannot assign to constant '$matches[1]'");
+				return $this->error("Cannot assign to constant '$matches[1]'");
 			}
 			
 			// get the result and make sure it's good
@@ -183,7 +213,7 @@ class EvalMath
 			// make sure it isn't built in
 			if (in_array($matches[1], $this->fb))
 			{
-				$this->throwError("cannot redefine built-in function '$matches[1]()'");
+				return $this->error("Cannot redefine built-in function '$matches[1]()'");
 			}
 			
 			// get the arguments
@@ -196,7 +226,7 @@ class EvalMath
 			}
 			
 			// freeze the state of the non-argument variables
-			for ($i = 0; $i<count($stack); $i++)
+			for ($i = 0; $i < count($stack); $i++)
 			{
 				$token = $stack[$i];
 				if (preg_match('/^[a-z]\w*$/', $token) and !in_array($token, $args))
@@ -207,7 +237,7 @@ class EvalMath
 					}
 					else
 					{
-						$this->throwError("undefined variable '$token' in function definition");
+						return $this->error("Undefined variable '$token' in function definition");
 					}
 				}
 			}
@@ -218,40 +248,15 @@ class EvalMath
 		}
 		else
 		{
-			// straight up evaluation, woo
-			return $this->pfx($this->nfx($expr));
+			$npr = $this->nfx($expr);
+			
+			if($npr !== false)
+			{
+				return $this->pfx($npr);
+			}
+			
+			return false;
 		}
-	}
-
-	/**
-	 * Get user defined variables
-	 * 
-	 * @return array $vars
-	 */
-	public function vars()
-	{
-		$output = $this->v;
-		
-		unset($output['pi'], $output['e']);
-		
-		return $output;
-	}
-
-	/**
-	 * Get user defined functions
-	 * 
-	 * @return array $functions
-	 */
-	public function funcs()
-	{
-		$output = array();
-		
-		foreach ($this->f as $fnn => $dat)
-		{
-			$output[] = $fnn . '(' . implode(',', $dat['args']) . ')';
-		}
-		
-		return $output;
 	}
 
 	/**
@@ -262,7 +267,7 @@ class EvalMath
 	protected function nfx($expr)
 	{
 		$index = 0;
-		$stack = new Stack;
+		$stack = new Stack();
 		$output = array(); // postfix form of expression, to be passed to pfx()
 		$expr = trim($expr);
 
@@ -275,218 +280,210 @@ class EvalMath
 		$expecting_op = false;
 
 		// make sure the characters are all good
-		if (preg_match("/[^\w\s+*^\/()\.,-]/", $expr, $matches))
+		if (preg_match("/[^\w\s+\*\^\/\(\)\.,\-]/", $expr, $matches))
 		{
-			$this->throwError("illegal character '{$matches[0]}'");
+			return $this->error("Illegal character '{$matches[0]}'");
 		}
 
-		try
+		// 1 Infinite Loop ;)
+		while(1)
 		{
-		
-			// 1 Infinite Loop ;)
-			while(1)
+			// get the first character at the current index
+			$op = substr($expr, $index, 1);
+			
+			// find out if we're currently at the beginning of a number/variable/function/parenthesis/operand
+			$ex = preg_match('/^([a-zA-Z]\w*\(?|\d+(?:\.\d*)?|\.\d+|\()/', substr($expr, $index), $match);
+			
+			// is it a negation instead of a minus?
+			if ($op == '-' and !$expecting_op)
 			{
-				// get the first character at the current index
-				$op = substr($expr, $index, 1);
+				// put a negation on the stack
+				$stack->push('_');
+				$index++;
+			}
+			// we have to explicitly deny this, because it's legal on the stack
+			elseif ($op == '_')
+			{
+				// but not in the input expression
+				return $this->error("Illegal character '_'");
+			}
+			// are we putting an operator on the stack?
+			elseif ((in_array($op, $ops) or $ex) and $expecting_op)
+			{
+				// are we expecting an operator but have a number/variable/function/opening parethesis?
+				if ($ex)
+				{
+					// it's an implicit multiplication
+					$op = '*';
+					$index--;
+				}
 				
-				// find out if we're currently at the beginning of a number/variable/function/parenthesis/operand
-				$ex = preg_match('/^([a-zA-Z]\w*\(?|\d+(?:\.\d*)?|\.\d+|\()/', substr($expr, $index), $match);
+				// heart of the algorithm:
+				while($stack->size() > 0 && ($o2 = $stack->nth()) && in_array($o2, $ops) && ($ops_r[$op] ? $ops_p[$op] < $ops_p[$o2] : $ops_p[$op] <= $ops_p[$o2]))
+				{
+					// pop stuff off the stack into the output
+					$output[] = $stack->pop();
+				}
 				
-				// is it a negation instead of a minus?
-				if ($op == '-' and !$expecting_op)
+				// many thanks: http://en.wikipedia.org/wiki/Reverse_Polish_notation#The_algorithm_in_detail
+				// finally put OUR operator onto the stack
+				$stack->push($op);
+				$index++;
+				$expecting_op = false;
+			}
+			// ready to close a parenthesis?
+			elseif ($op == ')' and $expecting_op)
+			{
+				// pop off the stack back to the last (
+				while (($o2 = $stack->pop()) != '(')
 				{
-					// put a negation on the stack
-					$stack->push('_');
-					$index++;
-				}
-				// we have to explicitly deny this, because it's legal on the stack
-				elseif ($op == '_')
-				{
-					// but not in the input expression
-					$this->throwError("illegal character '_'");
-				}
-				// are we putting an operator on the stack?
-				elseif ((in_array($op, $ops) or $ex) and $expecting_op)
-				{
-					// are we expecting an operator but have a number/variable/function/opening parethesis?
-					if ($ex)
+					if (is_null($o2))
 					{
-						// it's an implicit multiplication
-						$op = '*';
-						$index--;
+						return $this->error("Unexpected ')'");
 					}
-					
-					// heart of the algorithm:
-					while($stack->size() > 0 and ($o2 = $stack->nth()) and in_array($o2, $ops) and ($ops_r[$op] ? $ops_p[$op] < $ops_p[$o2] : $ops_p[$op] <= $ops_p[$o2]))
-					{
-						// pop stuff off the stack into the output
-						$output[] = $stack->pop();
-					}
-					
-					// many thanks: http://en.wikipedia.org/wiki/Reverse_Polish_notation#The_algorithm_in_detail
-					// finally put OUR operator onto the stack
-					$stack->push($op);
-					$index++;
-					$expecting_op = false;
-				}
-				// ready to close a parenthesis?
-				elseif ($op == ')' and $expecting_op)
-				{
-					// pop off the stack back to the last (
-					while (($o2 = $stack->pop()) != '(')
-					{
-						if (is_null($o2))
-						{
-							$this->throwError("unexpected ')'");
-						}
-						else
-						{
-							$output[] = $o2;
-						}
-					}
-					
-					// did we just close a function?
-					if (preg_match("/^([a-zA-Z]\w*)\($/", $stack->nth(2), $matches))
-					{
-						// get the function name
-						$fnn = $matches[1];
-						// see how many arguments there were (cleverly stored on the stack, thank you)
-						$arg_count = $stack->pop();
-						// pop the function and push onto the output
-						$output[] = $stack->pop();
-						// check the argument count
-						if (in_array($fnn, $this->fb))
-						{
-							if($arg_count > 1)
-							{
-								$this->throwError("too many arguments ($arg_count given, 1 expected)");
-							}
-							
-						}
-						elseif (array_key_exists($fnn, $this->f))
-						{
-							if ($arg_count != count($this->f[$fnn]['args']))
-							{
-								$this->throwError("wrong number of arguments ($arg_count given, " . count($this->f[$fnn]['args']) . " expected)");
-							}
-						}
-						// did we somehow push a non-function on the stack? this should never happen
-						else
-						{
-							$this->throwError("internal error");
-						}
-					}
-					
-					$index++;
-				}
-				// did we just finish a function argument?
-				elseif ($op == ',' and $expecting_op)
-				{
-					while (($o2 = $stack->pop()) != '(')
-					{
-						if (is_null($o2))
-						{
-							// oops, never had a (
-							$this->throwError("unexpected ','");
-						}
-						else
-						{
-							// pop the argument expression stuff and push onto the output
-							$output[] = $o2;
-						}
-					}
-					// make sure there was a function
-					if (!preg_match("/^([a-zA-Z]\w*)\($/", $stack->nth(2), $matches))
-					{
-						$this->throwError("unexpected ','");
-					}
-					
-					// increment the argument count
-					$stack->push($stack->pop()+1);
-					
-					// put the ( back on, we'll need to pop back to it again
-					$stack->push('(');
-					$index++;
-					$expecting_op = false;
-				}
-				elseif ($op == '(' and !$expecting_op)
-				{
-					// that was easy
-					$stack->push('(');
-					$index++;
-					$allow_neg = true;
-				}
-				// do we now have a function/variable/number?
-				elseif ($ex and !$expecting_op)
-				{
-					$expecting_op = true;
-					$val = $match[1];
-					
-					// may be func, or variable w/ implicit multiplication against parentheses...
-					if (preg_match("/^([a-zA-Z]\w*)\($/", $val, $matches))
-					{
-						// it's a func
-						if (in_array($matches[1], $this->fb) or array_key_exists($matches[1], $this->f))
-						{
-							$stack->push($val);
-							$stack->push(1);
-							$stack->push('(');
-							$expecting_op = false;
-						}
-						// it's a var w/ implicit multiplication
-						else
-						{
-							$val = $matches[1];
-							$output[] = $val;
-						}
-					}
-					// it's a plain old var or num
 					else
 					{
+						$output[] = $o2;
+					}
+				}
+				
+				// did we just close a function?
+				if (preg_match("/^([a-zA-Z]\w*)\($/", $stack->nth(2), $matches))
+				{
+					// get the function name
+					$fnn = $matches[1];
+					// see how many arguments there were (cleverly stored on the stack, thank you)
+					$arg_count = $stack->pop();
+					// pop the function and push onto the output
+					$output[] = $stack->pop();
+					// check the argument count
+					if (in_array($fnn, $this->fb))
+					{
+						if($arg_count > 1)
+						{
+							return $this->error("Too many arguments ($arg_count given, 1 expected)");
+						}
+						
+					}
+					elseif (array_key_exists($fnn, $this->f))
+					{
+						if ($arg_count != count($this->f[$fnn]['args']))
+						{
+							return $this->error("Wrong number of arguments ($arg_count given, " . count($this->f[$fnn]['args']) . " expected)");
+						}
+					}
+					// did we somehow push a non-function on the stack? this should never happen
+					else
+					{
+						return $this->error("Internal error");
+					}
+				}
+				
+				$index++;
+			}
+			// did we just finish a function argument?
+			elseif ($op == ',' and $expecting_op)
+			{
+				while (($o2 = $stack->pop()) != '(')
+				{
+					if (is_null($o2))
+					{
+						// oops, never had a (
+						return $this->error("Unexpected ','");
+					}
+					else
+					{
+						// pop the argument expression stuff and push onto the output
+						$output[] = $o2;
+					}
+				}
+				// make sure there was a function
+				if (!preg_match("/^([a-zA-Z]\w*)\($/", $stack->nth(2), $matches))
+				{
+					return $this->error("Unexpected ','");
+				}
+				
+				// increment the argument count
+				$stack->push($stack->pop()+1);
+				
+				// put the ( back on, we'll need to pop back to it again
+				$stack->push('(');
+				$index++;
+				$expecting_op = false;
+			}
+			elseif ($op == '(' and !$expecting_op)
+			{
+				// that was easy
+				$stack->push('(');
+				$index++;
+				$allow_neg = true;
+			}
+			// do we now have a function/variable/number?
+			elseif ($ex and !$expecting_op)
+			{
+				$expecting_op = true;
+				$val = $match[1];
+				
+				// may be func, or variable w/ implicit multiplication against parentheses...
+				if (preg_match("/^([a-zA-Z]\w*)\($/", $val, $matches))
+				{
+					// it's a func
+					if (in_array($matches[1], $this->fb) or array_key_exists($matches[1], $this->f))
+					{
+						$stack->push($val);
+						$stack->push(1);
+						$stack->push('(');
+						$expecting_op = false;
+					}
+					// it's a var w/ implicit multiplication
+					else
+					{
+						$val = $matches[1];
 						$output[] = $val;
 					}
-					
-					$index += strlen($val);
 				}
-				// miscellaneous error checking
-				elseif ($op == ')')
-				{
-					$this->throwError("unexpected ')'");
-				}
-				elseif (in_array($op, $ops) and !$expecting_op)
-				{
-					$this->throwError("unexpected operator '$op'");
-				}
-				// I don't even want to know what you did to get here
+				// it's a plain old var or num
 				else
 				{
-					$this->throwError("an unexpected error occured");
+					$output[] = $val;
 				}
 				
-				if ($index == strlen($expr))
+				$index += strlen($val);
+			}
+			// miscellaneous error checking
+			elseif ($op == ')')
+			{
+				return $this->error("Unexpected ')'");
+			}
+			elseif (in_array($op, $ops) and !$expecting_op)
+			{
+				return $this->error("Unexpected operator '$op'");
+			}
+			// I don't even want to know what you did to get here
+			else
+			{
+				return $this->error("An unexpected error occured");
+			}
+			
+			if ($index == strlen($expr))
+			{
+				// did we end with an operator? bad.
+				if (in_array($op, $ops))
 				{
-					// did we end with an operator? bad.
-					if (in_array($op, $ops))
-					{
-						$this->throwError("operator '$op' lacks operand");
-					}
-					else
-					{
-						break;
-					}
+					return $this->error("Operator '$op' lacks operand");
 				}
-				
-				// step the index past whitespace (pretty much turns whitespace
-				while (substr($expr, $index, 1) == ' ')
+				else
 				{
-					// into implicit multiplication if no operator is there)
-					$index++;
+					break;
 				}
 			}
-		}
-		catch (Exception $e)
-		{
-			$this->throwError("an unexpected error occured");
+			
+			// step the index past whitespace (pretty much turns whitespace
+			while (substr($expr, $index, 1) == ' ')
+			{
+				// into implicit multiplication if no operator is there)
+				$index++;
+			}
 		}
 		
 		// pop everything off the stack and push onto output
@@ -495,7 +492,7 @@ class EvalMath
 			// if there are (s on the stack, ()s were unbalanced
 			if ($op == '(')
 			{
-				$this->throwError("expecting ')'"); 
+				return $this->error("Expecting ')'"); 
 			}
 			
 			$output[] = $op;
@@ -528,14 +525,9 @@ class EvalMath
 			// if the token is a binary operator, pop two values off the stack, do the operation, and push the result back on
 			if (in_array($token, array('+', '-', '*', '/', '^')))
 			{
-				if (is_null($op2 = $stack->pop()))
+				if (is_null($op2 = $stack->pop()) || is_null($op1 = $stack->pop()))
 				{
-					$this->throwError("internal error");
-				}
-				
-				if (is_null($op1 = $stack->pop()))
-				{
-					$this->throwError("internal error");
+					return $this->error("Internal error");
 				}
 				
 				switch ($token)
@@ -552,7 +544,7 @@ class EvalMath
 					case '/':
 						if ($op2 == 0) 
 						{
-							$this->throwError("division by zero");
+							return $this->error("Division by zero");
 						}
 						$stack->push($this->strictPrecision(bcdiv($op1,$op2)));
 						break;
@@ -577,7 +569,7 @@ class EvalMath
 				{
 					if (is_null($op1 = $stack->pop()))
 					{
-						$this->throwError("internal error");
+						return $this->error("Internal error");
 					}
 					
 					// for the 'arc' trig synonyms
@@ -607,7 +599,7 @@ class EvalMath
 					{
 						if (is_null($args[$this->f[$fnn]['args'][$i]] = $stack->pop()))
 						{
-							$this->throwError("internal error");
+							return $this->error("Internal error");
 						}
 					}
 					
@@ -631,7 +623,7 @@ class EvalMath
 				}
 				else
 				{
-					$this->throwError("undefined variable '$token'");
+					return $this->error("Undefined variable '$token'");
 				}
 			}
 		}
@@ -639,7 +631,7 @@ class EvalMath
 		// when we're out of tokens, the stack should have a single element, the final result
 		if ($stack->size() != 1)
 		{
-			$this->throwError("internal error");
+			return $this->error("Internal error");
 		}
 		
 		return $stack->pop();
@@ -675,19 +667,21 @@ class EvalMath
 	}
 
 	/**
-	 * Throw an exception, if need be
+	 * Trigger a warning error if needed
 	 * 
 	 * @param string $msg Message error
 	 * 
-	 * @return mixed void or false
+	 * @return bool false
 	 */
-	private function throwError($msg)
+	private function error($msg)
 	{
 		$this->last_error = $msg;
 		
 		if (!$this->suppress_errors)
 		{
-			throw new Exception($msg, 500);
+			trigger_error($msg, E_USER_WARNING);
 		}
+		
+		return false;
 	}
 }
