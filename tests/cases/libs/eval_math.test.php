@@ -1,5 +1,5 @@
 <?php
-App::import('Rutils.EvalMath');
+App::import('Lib', 'Rutils.EvalMath');
 
 class EvalMathTest extends CakeTestCase
 {
@@ -14,6 +14,25 @@ class EvalMathTest extends CakeTestCase
 		$this->assertEqual($Eval->vars(), $expected);
 		$this->assertIdentical($Eval->getLastError(), null);
 		
+		unset($Eval);
+	}
+	
+	public function testNonDefaultConfig()
+	{
+		$Eval = new EvalMath(1);
+		
+		$result = $Eval->evaluate(1);
+		$this->assertIdentical('1.0', $result);
+		
+		$result = $Eval->evaluate(-1);
+		$this->assertIdentical('-1.0', $result);
+		
+		$result = $Eval->evaluate(1, 2);
+		$this->assertIdentical('1.00', $result);
+		
+		$result = $Eval->evaluate(-1, 4);
+		$this->assertIdentical('-1.0000', $result);
+	
 		unset($Eval);
 	}
 	
@@ -38,6 +57,22 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('3 * 2.5');
 		$this->assertIdentical('7.500', $result);
 		
+		unset($Eval);
+	}
+	
+	public function testBasicsWithNonDefault()
+	{
+		$Eval = new EvalMath(1);
+	
+		$result = $Eval->evaluate('1.54 + 1.36', 0);
+		$this->assertIdentical('2', $result);
+		
+		$result = $Eval->evaluate('1.54 + 1.36', 1);
+		$this->assertIdentical('2.9', $result);
+		
+		$result = $Eval->evaluate('1.54 + 1.36', 2);
+		$this->assertIdentical('2.90', $result);
+	
 		unset($Eval);
 	}
 	

@@ -1,5 +1,5 @@
 <?php
-App::import('Rutils.Text');
+App::import('Lib', 'Rutils.Text');
 
 class TextTest extends CakeTestCase {
 	public function testRemoveSpecials() {

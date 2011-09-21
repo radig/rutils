@@ -56,7 +56,14 @@ class Stack
 	{
 		if($this->elements >= $n)
 		{
-			return $this->stack[$this->elements - $n];
+			if(isset($this->stack[$this->elements - $n]))
+			{
+				return $this->stack[$this->elements - $n];
+			}
+			else
+			{
+				return null;
+			}
 		}
 		else
 		{

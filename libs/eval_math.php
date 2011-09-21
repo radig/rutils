@@ -142,7 +142,7 @@ class EvalMath
 		$this->last_error = null;
 		$expr = trim($expr);
 		
-		if($precision != null)
+		if($precision !== null)
 		{
 			$this->precision = $precision;
 		}
@@ -159,7 +159,7 @@ class EvalMath
 			// make sure we're not assigning to a constant
 			if (in_array($matches[1], $this->vb))
 			{
-				return $this->trigger("cannot assign to constant '$matches[1]'");
+				$this->throwError("cannot assign to constant '$matches[1]'");
 			}
 			
 			// get the result and make sure it's good
@@ -183,7 +183,7 @@ class EvalMath
 			// make sure it isn't built in
 			if (in_array($matches[1], $this->fb))
 			{
-				return $this->trigger("cannot redefine built-in function '$matches[1]()'");
+				$this->throwError("cannot redefine built-in function '$matches[1]()'");
 			}
 			
 			// get the arguments
@@ -207,7 +207,7 @@ class EvalMath
 					}
 					else
 					{
-						return $this->trigger("undefined variable '$token' in function definition");
+						$this->throwError("undefined variable '$token' in function definition");
 					}
 				}
 			}
@@ -277,7 +277,7 @@ class EvalMath
 		// make sure the characters are all good
 		if (preg_match("/[^\w\s+*^\/()\.,-]/", $expr, $matches))
 		{
-			return $this->trigger("illegal character '{$matches[0]}'");
+			$this->throwError("illegal character '{$matches[0]}'");
 		}
 
 		try
@@ -303,7 +303,7 @@ class EvalMath
 				elseif ($op == '_')
 				{
 					// but not in the input expression
-					return $this->trigger("illegal character '_'");
+					$this->throwError("illegal character '_'");
 				}
 				// are we putting an operator on the stack?
 				elseif ((in_array($op, $ops) or $ex) and $expecting_op)
@@ -337,7 +337,7 @@ class EvalMath
 					{
 						if (is_null($o2))
 						{
-							return $this->trigger("unexpected ')'");
+							$this->throwError("unexpected ')'");
 						}
 						else
 						{
@@ -359,7 +359,7 @@ class EvalMath
 						{
 							if($arg_count > 1)
 							{
-								return $this->trigger("too many arguments ($arg_count given, 1 expected)");
+								$this->throwError("too many arguments ($arg_count given, 1 expected)");
 							}
 							
 						}
@@ -367,13 +367,13 @@ class EvalMath
 						{
 							if ($arg_count != count($this->f[$fnn]['args']))
 							{
-								return $this->trigger("wrong number of arguments ($arg_count given, " . count($this->f[$fnn]['args']) . " expected)");
+								$this->throwError("wrong number of arguments ($arg_count given, " . count($this->f[$fnn]['args']) . " expected)");
 							}
 						}
 						// did we somehow push a non-function on the stack? this should never happen
 						else
 						{
-							return $this->trigger("internal error");
+							$this->throwError("internal error");
 						}
 					}
 					
@@ -387,7 +387,7 @@ class EvalMath
 						if (is_null($o2))
 						{
 							// oops, never had a (
-							return $this->trigger("unexpected ','");
+							$this->throwError("unexpected ','");
 						}
 						else
 						{
@@ -398,7 +398,7 @@ class EvalMath
 					// make sure there was a function
 					if (!preg_match("/^([a-zA-Z]\w*)\($/", $stack->nth(2), $matches))
 					{
-						return $this->trigger("unexpected ','");
+						$this->throwError("unexpected ','");
 					}
 					
 					// increment the argument count
@@ -451,16 +451,16 @@ class EvalMath
 				// miscellaneous error checking
 				elseif ($op == ')')
 				{
-					return $this->trigger("unexpected ')'");
+					$this->throwError("unexpected ')'");
 				}
 				elseif (in_array($op, $ops) and !$expecting_op)
 				{
-					return $this->trigger("unexpected operator '$op'");
+					$this->throwError("unexpected operator '$op'");
 				}
 				// I don't even want to know what you did to get here
 				else
 				{
-					return $this->trigger("an unexpected error occured");
+					$this->throwError("an unexpected error occured");
 				}
 				
 				if ($index == strlen($expr))
@@ -468,7 +468,7 @@ class EvalMath
 					// did we end with an operator? bad.
 					if (in_array($op, $ops))
 					{
-						return $this->trigger("operator '$op' lacks operand");
+						$this->throwError("operator '$op' lacks operand");
 					}
 					else
 					{
@@ -486,7 +486,7 @@ class EvalMath
 		}
 		catch (Exception $e)
 		{
-			return $this->trigger("an unexpected error occured");
+			$this->throwError("an unexpected error occured");
 		}
 		
 		// pop everything off the stack and push onto output
@@ -495,7 +495,7 @@ class EvalMath
 			// if there are (s on the stack, ()s were unbalanced
 			if ($op == '(')
 			{
-				return $this->trigger("expecting ')'"); 
+				$this->throwError("expecting ')'"); 
 			}
 			
 			$output[] = $op;
@@ -514,7 +514,8 @@ class EvalMath
 	 */ 
 	protected function pfx($tokens, $vars = array())
 	{
-
+		bcscale($this->precision);
+		
 		if ($tokens == false)
 		{
 			return false;
@@ -529,12 +530,12 @@ class EvalMath
 			{
 				if (is_null($op2 = $stack->pop()))
 				{
-					return $this->trigger("internal error");
+					$this->throwError("internal error");
 				}
 				
 				if (is_null($op1 = $stack->pop()))
 				{
-					return $this->trigger("internal error");
+					$this->throwError("internal error");
 				}
 				
 				switch ($token)
@@ -551,7 +552,7 @@ class EvalMath
 					case '/':
 						if ($op2 == 0) 
 						{
-							return $this->trigger("division by zero");
+							$this->throwError("division by zero");
 						}
 						$stack->push($this->strictPrecision(bcdiv($op1,$op2)));
 						break;
@@ -576,7 +577,7 @@ class EvalMath
 				{
 					if (is_null($op1 = $stack->pop()))
 					{
-						return $this->trigger("internal error");
+						$this->throwError("internal error");
 					}
 					
 					// for the 'arc' trig synonyms
@@ -606,7 +607,7 @@ class EvalMath
 					{
 						if (is_null($args[$this->f[$fnn]['args'][$i]] = $stack->pop()))
 						{
-							return $this->trigger("internal error");
+							$this->throwError("internal error");
 						}
 					}
 					
@@ -630,7 +631,7 @@ class EvalMath
 				}
 				else
 				{
-					return $this->trigger("undefined variable '$token'");
+					$this->throwError("undefined variable '$token'");
 				}
 			}
 		}
@@ -638,7 +639,7 @@ class EvalMath
 		// when we're out of tokens, the stack should have a single element, the final result
 		if ($stack->size() != 1)
 		{
-			return $this->trigger("internal error");
+			$this->throwError("internal error");
 		}
 		
 		return $stack->pop();
@@ -662,15 +663,15 @@ class EvalMath
 		if(($pos = strpos($value, '.')) !== false)
 		{
 			$append = str_pad(substr($value, $pos), $this->precision + 1, '0');
-			$num = substr($value, 0, $pos) . $append;
+			$value = substr($value, 0, $pos) . $append;
 		}
-		else
+		else if($this->precision > 0)
 		{
 			$append = str_repeat('0', $this->precision);
-			$num = $value . '.' . $append;
+			$value = $value . '.' . $append;
 		}
 		
-		return $num;
+		return $value;
 	}
 
 	/**
@@ -680,7 +681,7 @@ class EvalMath
 	 * 
 	 * @return mixed void or false
 	 */
-	private function trigger($msg)
+	private function throwError($msg)
 	{
 		$this->last_error = $msg;
 		
@@ -688,7 +689,5 @@ class EvalMath
 		{
 			throw new Exception($msg, 500);
 		}
-		
-		return false;
 	}
 }
