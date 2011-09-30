@@ -86,4 +86,32 @@ class Rutils
 			}
 		}
 	}
+	
+	/**
+	 * Retorna o nome do plugin dada uma string composta por Plugin.Model
+	 * @param string $modelName
+	 */
+	static function getPluginName($modelName)
+	{
+		if(empty($modelName))
+			return '';
+	
+		$exploded = explode('.', $modelName);
+		
+		return count($exploded) > 1 ? $exploded[0] : '';
+	}
+	
+	/**
+	* Retorna o nome do model dada uma string composta por Plugin.Model
+	* @param string $modelName
+	*/
+	static function getModelName($modelName)
+	{
+		if(empty($modelName))
+			return '';
+	
+		$exploded = explode('.', $modelName);
+	
+		return count($exploded) > 1 ? $exploded[1] : '';
+	}
 }
