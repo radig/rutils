@@ -112,6 +112,6 @@ class Rutils
 	
 		$exploded = explode('.', $modelName);
 	
-		return count($exploded) > 1 ? $exploded[1] : '';
+		return count($exploded) > 1 ? $exploded[1] : $modelName;
 	}
 }
