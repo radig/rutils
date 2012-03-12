@@ -1,6 +1,5 @@
 <?php
-class Stack
-{
+class Stack {
 	/**
 	 * Array utilizado como container
 	 * da pilha.

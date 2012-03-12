@@ -1,5 +1,5 @@
 <?php
-App::import('Lib', 'Rutils.Stack');
+App::uses('Stack', 'Rutils.Lib');
 
 class StackTest extends CakeTestCase
 {

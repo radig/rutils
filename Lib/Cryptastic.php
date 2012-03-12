@@ -27,8 +27,7 @@
 //
 //echo $decrypted . "<br /><br />\n";
 
-class Cryptastic
-{
+class Cryptastic {
 	/** Encryption Procedure
 	 *
 	 *	@param   mixed    msg      message/data

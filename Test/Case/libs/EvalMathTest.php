@@ -1,5 +1,6 @@
 <?php
-App::import('Lib', 'Rutils.EvalMath');
+App::uses('EvalMath', 'Rutils.Lib');
+
 
 class EvalMathTest extends CakeTestCase
 {
@@ -188,7 +189,7 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('sin(x) = 2*x');
 		$this->assertEqual($Eval->getLastError(), 'Cannot redefine built-in function \'sin()\'');
 		
-		$result = $Eval->evaluate('a(1,2');
+		$result = $Eval->evaluate('array(1,2');
 		$this->assertEqual($Eval->getLastError(), 'Unexpected \',\'');
 		
 		unset($Eval);

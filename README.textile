@@ -12,7 +12,7 @@ h2. Como usar a classe Rutils
 
 * Apenas inclua a classe que deseja utilizar e chame os métodos de interesse
 
-bc. App::import('Lib', 'Rutils.Rutils');
+bc. App::uses('Rutils', 'Rutils.Lib');
 if(Rutils::isNullDate('0000-00-00'))
     echo 'Data nula no MySQL';
 else
@@ -20,7 +20,7 @@ else
 
 h2. Como usar a classe Cryptastic
 
-bc. App::import('Lib', 'Rutils.Cryptastic');
+bc. App::uses('Cryptastic', 'Rutils.Lib');
 // geração do vetor de inicialização
 $iv = Cryptastic::generateIV(MCRYPT_TRIPLEDES, MCRYPT_MODE_ECB, false);
 // uma senha qualquer que será usada para cifrar a informação

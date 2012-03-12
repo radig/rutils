@@ -84,10 +84,9 @@
 
  */
 
-App::import('Lib', 'Rutils.Stack');
+App::uses('Stack', 'Rutils.Lib');
 
-class EvalMath
-{
+class EvalMath {
 	public $suppress_errors = false;
 	
 	protected $last_error = null;

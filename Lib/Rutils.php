@@ -18,8 +18,7 @@
  * @subpackage    radig.utils.libs
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
-class Rutils
-{
+class Rutils {
 	/**
 	 * Verifica se uma data passada é nula
 	 * 
