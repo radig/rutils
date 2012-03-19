@@ -84,7 +84,7 @@
 
  */
 
-App::uses('Stack', 'Rutils.Lib');
+App::uses('Stack', 'Rutil.Lib');
 
 class EvalMath {
 	public $suppress_errors = false;

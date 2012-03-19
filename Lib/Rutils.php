@@ -79,9 +79,7 @@ class Rutils {
 			}
 			catch( Exception $e )
 			{
-				trigger_error("Arquivo não pode ser importado\n" . $e->getMessage(), E_USER_WARNING);
-
-				return false;
+				throw new CakeException("Arquivo não pode ser importado\n" . $e->getMessage());
 			}
 		}
 	}

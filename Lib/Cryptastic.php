@@ -1,6 +1,4 @@
 <?php
-
-
 /*-------------------------------------------------------------------------
 
 	Cryptastic, by Andrew Johnson (2009).
@@ -11,7 +9,7 @@
 
 -------------------------------------------------------------------------*/
 
-/**********************************************************************************************************************/
+/*************************************************************************/
 
 // EXAMPLE #1 USING STRING AS MESSAGE
 //$cryptastic = new cryptastic;
@@ -144,15 +142,13 @@ class Cryptastic {
 	 * 
 	 * Code posted by Er. Galvão in your personal blog ( http://blog.galvao.eti.br/?p=212 ) 
 	 */
-	public static function generateIV($type = MCRYPT_TRIPLEDES, $mode = MCRYPT_MODE_ECB, $base64 = true)
+	public static function generateIV($type = MCRYPT_RIJNDAEL_256, $mode = MCRYPT_MODE_ECB, $base64 = false)
 	{
 		$size = mcrypt_get_iv_size($type, $mode);
 		$iv = mcrypt_create_iv($size, MCRYPT_DEV_RANDOM);
 
 		if($base64)
-		{
 			return base64_encode($iv);
-		}
 		
 		return $iv;
 	}
