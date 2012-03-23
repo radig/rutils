@@ -233,27 +233,56 @@ class EvalMathTest extends CakeTestCase
 	{
 		$Eval = new EvalMath();
 
+		$this->expectError('Division by zero');
 		$result = $Eval->evaluate('1 / 0');
 		$this->assertEqual($Eval->getLastError(), 'Division by zero');
 		$this->assertIdentical(false, $result);
 
+		$this->expectError('Undefined variable \'a\'');
 		$result = $Eval->evaluate('a');
 		$this->assertEqual($Eval->getLastError(), 'Undefined variable \'a\'');
 		$this->assertIdentical(false, $result);
 
+		$this->expectError('Illegal character \'_\'');
 		$result = $Eval->evaluate('_2');
 		$this->assertEqual($Eval->getLastError(), 'Illegal character \'_\'');
 		$this->assertIdentical(false, $result);
 
+		$this->expectError('Cannot assign to constant \'e\'');
 		$result = $Eval->evaluate('e = 1');
 		$this->assertEqual($Eval->getLastError(), 'Cannot assign to constant \'e\'');
 		$this->assertIdentical(false, $result);
 
+		$this->expectError('Cannot redefine built-in function \'sin()\'');
 		$result = $Eval->evaluate('sin(x) = 2*x');
 		$this->assertEqual($Eval->getLastError(), 'Cannot redefine built-in function \'sin()\'');
+		$this->assertIdentical(false, $result);
 
+		$this->expectError('Unexpected \',\'');
 		$result = $Eval->evaluate('a(1,2');
 		$this->assertEqual($Eval->getLastError(), 'Unexpected \',\'');
+		$this->assertIdentical(false, $result);
+
+		$this->expectError('Illegal character \'#\'');
+		$result = $Eval->evaluate('#');
+		$this->assertEqual($Eval->getLastError(), 'Illegal character \'#\'');
+		$this->assertIdentical(false, $result);
+
+		$this->expectError('Wrong number of arguments (3 given, 2 expected)');
+		$Eval->evaluate('f(x,y) = x+y');
+		$result = $Eval->evaluate('f(2,3,4)');
+		$this->assertEqual($Eval->getLastError(), 'Wrong number of arguments (3 given, 2 expected)');
+		$this->assertIdentical(false, $result);
+
+		$this->expectError('Too many arguments (2 given, 1 expected)');
+		$result = $Eval->evaluate('log(2,1)');
+		$this->assertEqual($Eval->getLastError(), 'Too many arguments (2 given, 1 expected)');
+		$this->assertIdentical(false, $result);
+
+		$this->expectError('Undefined variable \'z\' in function definition');
+		$result = $Eval->evaluate('f(x,y) = x+y+z');
+		$this->assertEqual($Eval->getLastError(), 'Undefined variable \'z\' in function definition');
+		$this->assertIdentical(false, $result);
 
 		unset($Eval);
 	}
