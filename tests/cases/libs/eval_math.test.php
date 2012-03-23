@@ -1,6 +1,5 @@
 <?php
 App::import('Lib', 'Rutils.EvalMath');
-
 class EvalMathTest extends CakeTestCase
 {
 	public function testDefaultConfig()
@@ -258,6 +257,29 @@ class EvalMathTest extends CakeTestCase
 		$this->assertEqual($Eval->getLastError(), 'Cannot redefine built-in function \'sin()\'');
 		$this->assertIdentical(false, $result);
 
+		unset($Eval);
+	}
+
+	public function testInvalidExpressions()
+	{
+		$Eval = new EvalMath();
+
+		$Eval->suppress_errors = true;
+
+		$result = $Eval->evaluate('()');
+		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
+
+		$result = $Eval->evaluate('1)');
+		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
+
+		$result = $Eval->evaluate('((');
+		$this->assertEqual($Eval->getLastError(), 'Expecting \')\'');
+
+		$result = $Eval->evaluate('2+3+');
+		$this->assertEqual($Eval->getLastError(), 'Operator \'+\' lacks operand');
+
+		$Eval->suppress_errors = false;
+
 		$this->expectError('Unexpected \',\'');
 		$result = $Eval->evaluate('a(1,2');
 		$this->assertEqual($Eval->getLastError(), 'Unexpected \',\'');
@@ -283,27 +305,6 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('f(x,y) = x+y+z');
 		$this->assertEqual($Eval->getLastError(), 'Undefined variable \'z\' in function definition');
 		$this->assertIdentical(false, $result);
-
-		unset($Eval);
-	}
-
-	public function testInvalidExpressions()
-	{
-		$Eval = new EvalMath();
-
-		$Eval->suppress_errors = true;
-
-		$result = $Eval->evaluate('()');
-		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
-
-		$result = $Eval->evaluate('1)');
-		$this->assertEqual($Eval->getLastError(), 'Unexpected \')\'');
-
-		$result = $Eval->evaluate('((');
-		$this->assertEqual($Eval->getLastError(), 'Expecting \')\'');
-
-		$result = $Eval->evaluate('2+3+');
-		$this->assertEqual($Eval->getLastError(), 'Operator \'+\' lacks operand');
 
 		unset($Eval);
 	}
