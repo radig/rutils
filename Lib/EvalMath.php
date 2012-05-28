@@ -70,7 +70,7 @@ class EvalMath {
 	protected $lastError = null;
 
 	/**
-	 * BCMATH Precision value
+	 * Precision of resulting value
 	 * @var int
 	 */
 	protected $precision;
@@ -79,27 +79,27 @@ class EvalMath {
 	 * User defineds variables and constants
 	 * @var array
 	 */
-	protected $v = array();
+	protected $variables = array();
 
 	/**
 	 * User defineds functions
 	 * @var array
 	 */
-	protected $f = array();
+	protected $functions = array();
 
 	/**
 	 * Built-in constants
 	 *
 	 * @var array
 	 */
-	protected $vb = array('e', 'pi');
+	protected $builtinVars = array('e', 'pi');
 
 	/**
 	 * Built-in functions
 	 *
 	 * @var array
 	 */
-	protected $fb = array(
+	protected $builtinFuncs = array(
         'sin','sinh','arcsin','asin','arcsinh','asinh',
         'cos','cosh','arccos','acos','arccosh','acosh',
         'tan','tanh','arctan','atan','arctanh','atanh',
@@ -122,8 +122,8 @@ class EvalMath {
 	public function __construct($precision = 3)
 	{
 		// make the variables a little more accurate
-		$this->v['pi'] = pi();
-		$this->v['e'] = exp(1);
+		$this->variables['pi'] = pi();
+		$this->variables['e'] = exp(1);
 		//set default precision of BC Math operations
 		$this->precision = $precision;
 	}
@@ -151,10 +151,10 @@ class EvalMath {
 	public function clear($type = null)
 	{
 		if(strtolower($type) == 'vars' || $type === null)
-			$this->v = array('pi' => pi(), 'e' => exp(1));
+			$this->variables = array('pi' => pi(), 'e' => exp(1));
 
 		if(strtolower($type) == 'funcs' || $type === null)
-			$this->f = array();
+			$this->functions = array();
 	}
 
 	/**
@@ -164,7 +164,7 @@ class EvalMath {
 	*/
 	public function vars()
 	{
-		$output = $this->v;
+		$output = $this->variables;
 
 		unset($output['pi'], $output['e']);
 
@@ -180,12 +180,33 @@ class EvalMath {
 	{
 		$output = array();
 
-		foreach ($this->f as $fnn => $dat)
+		foreach ($this->functions as $fnn => $dat)
 		{
 			$output[] = $fnn . '(' . implode(',', $dat['args']) . ')';
 		}
 
 		return $output;
+	}
+
+	/**
+	 * Magic method to set class attributes or
+	 * variables values
+	 *
+	 * @param string $name
+	 * @param mixed $value
+	 */
+	public function __set($name, $value)
+	{
+		if(property_exists($this, $name))
+		{
+			$this->{$name} = $value;
+			return;
+		}
+
+		if(strlen($name) > 1)
+			$this->error("Invalid field {$name}");
+
+		$this->evaluate("{$name} = {$value}");
 	}
 
 	/**
@@ -218,7 +239,7 @@ class EvalMath {
 		if (preg_match('/^\s*([a-zA-Z]\w*)\s*=\s*(.+)$/', $expr, $matches))
 		{
 			// make sure we're not assigning to a constant
-			if (in_array($matches[1], $this->vb))
+			if (in_array($matches[1], $this->builtinVars))
 			{
 				return $this->error("Cannot assign to constant '$matches[1]'");
 			}
@@ -230,10 +251,10 @@ class EvalMath {
 			}
 
 			// if so, stick it in the variable array
-			$this->v[$matches[1]] = $tmp;
+			$this->variables[$matches[1]] = $tmp;
 
 			// and return the resulting value
-			return $this->returnValue($this->v[$matches[1]]);
+			return $this->returnValue($this->variables[$matches[1]]);
 		}
 		// is it a function assignment?
 		elseif (preg_match('/^\s*([a-zA-Z]\w*)\s*\(\s*([a-zA-Z]\w*(?:\s*,\s*[a-zA-Z]\w*)*)\s*\)\s*=\s*(.+)$/', $expr, $matches))
@@ -242,7 +263,7 @@ class EvalMath {
 			$fnn = $matches[1];
 
 			// make sure it isn't built in
-			if (in_array($matches[1], $this->fb))
+			if (in_array($matches[1], $this->builtinFuncs))
 			{
 				return $this->error("Cannot redefine built-in function '$matches[1]()'");
 			}
@@ -262,9 +283,9 @@ class EvalMath {
 				$token = $stack[$i];
 				if (preg_match('/^[a-z]\w*$/', $token) and !in_array($token, $args))
 				{
-					if (array_key_exists($token, $this->v))
+					if (array_key_exists($token, $this->variables))
 					{
-						$stack[$i] = $this->v[$token];
+						$stack[$i] = $this->variables[$token];
 					}
 					else
 					{
@@ -273,7 +294,7 @@ class EvalMath {
 				}
 			}
 
-			$this->f[$fnn] = array('args' => $args, 'func' => $stack);
+			$this->functions[$fnn] = array('args' => $args, 'func' => $stack);
 
 			return $this->returnValue(true);
 		}
@@ -388,7 +409,7 @@ class EvalMath {
 					// pop the function and push onto the output
 					$output[] = $stack->pop();
 					// check the argument count
-					if (in_array($fnn, $this->fb))
+					if (in_array($fnn, $this->builtinFuncs))
 					{
 						if($arg_count > 1)
 						{
@@ -396,11 +417,11 @@ class EvalMath {
 						}
 
 					}
-					elseif (array_key_exists($fnn, $this->f))
+					elseif (array_key_exists($fnn, $this->functions))
 					{
-						if ($arg_count != count($this->f[$fnn]['args']))
+						if ($arg_count != count($this->functions[$fnn]['args']))
 						{
-							return $this->error("Wrong number of arguments ($arg_count given, " . count($this->f[$fnn]['args']) . " expected)");
+							return $this->error("Wrong number of arguments ($arg_count given, " . count($this->functions[$fnn]['args']) . " expected)");
 						}
 					}
 					// did we somehow push a non-function on the stack? this should never happen
@@ -459,7 +480,7 @@ class EvalMath {
 				if (preg_match("/^([a-zA-Z]\w*)\($/", $val, $matches))
 				{
 					// it's a func
-					if (in_array($matches[1], $this->fb) or array_key_exists($matches[1], $this->f))
+					if (in_array($matches[1], $this->builtinFuncs) || array_key_exists($matches[1], $this->functions))
 					{
 						$stack->push($val);
 						$stack->push(1);
@@ -486,7 +507,7 @@ class EvalMath {
 			{
 				return $this->error("Unexpected ')'");
 			}
-			elseif (in_array($op, $ops) and !$expecting_op)
+			elseif (in_array($op, $ops) && !$expecting_op)
 			{
 				return $this->error("Unexpected operator '$op'");
 			}
@@ -542,7 +563,7 @@ class EvalMath {
 	 */
 	protected function pfx($tokens, $vars = array())
 	{
-		bcscale($this->precision);
+		bcscale(16);
 
 		if ($tokens === false)
 			return false;
@@ -591,7 +612,7 @@ class EvalMath {
 				$fnn = $matches[1];
 
 				// built-in function:
-				if (in_array($fnn, $this->fb))
+				if (in_array($fnn, $this->builtinFuncs))
 				{
 					if (is_null($op1 = $stack->pop()))
 						return $this->error("Internal error");
@@ -605,25 +626,25 @@ class EvalMath {
 					if ($fnn == 'sqrt')
 						$fnn = 'bcsqrt';
 
-					$val = $this->strictPrecision(call_user_func($fnn, $op1));
+					$val = call_user_func($fnn, $op1);
 
 					$stack->push($val);
 				}
 				// user function
-				elseif (array_key_exists($fnn, $this->f))
+				elseif (array_key_exists($fnn, $this->functions))
 				{
 					// get args
 					$args = array();
 
-					for ($i = count($this->f[$fnn]['args'])-1; $i >= 0; $i--)
+					for ($i = count($this->functions[$fnn]['args'])-1; $i >= 0; $i--)
 					{
-						if (is_null($args[$this->f[$fnn]['args'][$i]] = $stack->pop()))
+						if (is_null($args[$this->functions[$fnn]['args'][$i]] = $stack->pop()))
 						{
 							return $this->error("Internal error");
 						}
 					}
 
-					$stack->push($this->pfx($this->f[$fnn]['func'], $args)); // yay... recursion!!!!
+					$stack->push($this->pfx($this->functions[$fnn]['func'], $args)); // yay... recursion!!!!
 				}
 			}
 			// if the token is a number or variable, push it on the stack
@@ -631,15 +652,15 @@ class EvalMath {
 			{
 				if (is_numeric($token))
 				{
-					$stack->push($this->strictPrecision($token));
+					$stack->push($token);
 				}
-				elseif (array_key_exists($token, $this->v))
+				elseif (array_key_exists($token, $this->variables))
 				{
-					$stack->push($this->strictPrecision($this->v[$token]));
+					$stack->push($this->variables[$token]);
 				}
 				elseif (array_key_exists($token, $vars))
 				{
-					$stack->push($this->strictPrecision($vars[$token]));
+					$stack->push($vars[$token]);
 				}
 				else
 				{
@@ -671,15 +692,20 @@ class EvalMath {
 		if(empty($value))
 			$value = '0';
 
-		if(($pos = strpos($value, '.')) !== false)
+		if(strpos($value, '.') !== false)
 		{
-			$append = str_pad(substr($value, $pos), $this->precision + 1, '0');
-			$value = substr($value, 0, $pos) . $append;
+			list($int, $dec) = explode('.', (string)$value);
+			$dec = substr(str_pad($dec, $this->precision, '0'), 0, $this->precision);
+
+			if(!empty($dec))
+				$value = "{$int}.{$dec}";
+			else
+				$value = $int;
 		}
 		else if($this->precision > 0)
 		{
-			$append = str_repeat('0', $this->precision);
-			$value = $value . '.' . $append;
+			$dec = str_repeat('0', $this->precision);
+			$value = "{$value}.{$dec}";
 		}
 
 		return $value;
@@ -714,7 +740,7 @@ class EvalMath {
 	private function error($msg)
 	{
 		$this->restoreLocale();
-		$this->last_error = $msg;
+		$this->lastError = $msg;
 
 		if (!$this->suppressErrors)
 			throw new CakeException($msg);

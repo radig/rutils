@@ -74,7 +74,7 @@ class EvalMathTest extends CakeTestCase
 		$expected = array();
 
 		$Eval->evaluate('a = 2');
-		$this->assertIdentical($Eval->vars(), array('a' => '2.000'));
+		$this->assertIdentical($Eval->vars(), array('a' => '2'));
 
 		$result = $Eval->evaluate('a');
 		$this->assertIdentical('2.000', $result);
@@ -99,7 +99,7 @@ class EvalMathTest extends CakeTestCase
 		$Eval->evaluate('a = 2');
 		$Eval->evaluate('f(a) = 2a');
 
-		$this->assertIdentical($Eval->vars(), array('a' => '2.000'));
+		$this->assertIdentical($Eval->vars(), array('a' => '2'));
 		$Eval->clear('vars');
 		$this->assertIdentical($Eval->vars(), array());
 
@@ -122,7 +122,7 @@ class EvalMathTest extends CakeTestCase
 
 		$Eval->evaluate('a = 2');
 		$Eval->evaluate('b = 3;');
-		$this->assertIdentical($Eval->vars(), array('a' => '2.000', 'b' => '3.000'));
+		$this->assertIdentical($Eval->vars(), array('a' => '2', 'b' => '3'));
 
 		$result = $Eval->evaluate('a');
 		$this->assertIdentical('2.000', $result);
@@ -185,6 +185,15 @@ class EvalMathTest extends CakeTestCase
 		$result = $Eval->evaluate('((a-b)*10^6)/c');
 		$this->assertIdentical((float)$result, 3556.0);
 		$this->assertIdentical($result, '3556.0000');
+
+		$Eval->clear();
+		$Eval->precision = 4;
+		$Eval->a = '0.15';
+		$Eval->b = '0';
+		$Eval->f = '20';
+		$result = $Eval->evaluate('((a-b)*0.0141*1.0071*35.45*1000)/f');
+		$this->assertIdentical((float)$result, 3.7754);
+		$this->assertIdentical($result, '3.7754');
 	}
 
 	public function testEvaluateWithFunction()
