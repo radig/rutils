@@ -221,7 +221,7 @@ class EvalMath {
 		$this->lastError = null;
 		$expr = trim($expr);
 
-		$this->lcNumericOld = setlocale(LC_NUMERIC, null);
+		$this->lcNumericOld = setlocale(LC_NUMERIC, "0");
 		setlocale(LC_NUMERIC, 'en_US');
 
 		if($precision !== null)
