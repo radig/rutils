@@ -1,0 +1,25 @@
+{
+    "name": "radig/rutils",
+    "description": "Radig Utilities Plugin",
+    "type": "cakephp-plugin",
+    "keywords": ["cakephp", "utilities", "radig"],
+    "homepage": "https://github.com/radig/rutils",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Radig",
+            "homepage": "https://github.com/cakephp/rutils/"
+        }
+    ],
+    "support": {
+        "source": "https://github.com/radig/rutils"
+    },
+    "require": {
+        "php": ">=5.2",
+        "cakephp/cakephp": ">=2.1",
+        "composer/installers": "*"
+    },
+    "extra": {
+        "installer-name": "Rutils"
+    }
+}
